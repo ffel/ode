@@ -44,7 +44,7 @@ func FixedStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, h Num) []Resul
 // AdaptiveStep iterates over a set of ode's with adaptive h
 // starts with h and minimum hmin
 func AdaptiveStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, hmin, h Num) []Result {
-	var T Num = t0
+	T := t0
 
 	var kkFull []Num
 
