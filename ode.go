@@ -1,4 +1,4 @@
-// Packages ode provides numerical methods for ordinary differential equations
+// Package ode provides numerical methods for ordinary differential equations
 package ode
 
 // Num as short for float64
@@ -18,9 +18,7 @@ type Integrator func([]Num, Num, Num, []Ode) []Num
 
 // FixedStep iterates over a set of ode's with fixed step h
 func FixedStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, h Num) []Result {
-	var T Num
-
-	T = t0
+	T := t0
 
 	r := make([]Result, 0, 200)
 
