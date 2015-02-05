@@ -1,74 +1,37 @@
-// numerical methods for ordinary differential equations
+// Numerical methods for ordinary differential equations
 package ode
 
-import "fmt"
+// Num as short for float64
+type Num float64
 
-// see http://jordanorelli.com/post/42369331748/function-types-in-go-golang
-
-// num as short for float64
-type num float64
-
-type result struct {
-	t  num
-	xx []num
+// Result is a row in a table of calculated results
+type Result struct {
+	t  Num
+	xx []Num
 }
 
-// the spring is described by two first order ode
-type ode func([]num, num) num
+// Ode is a first order differential equation
+type Ode func([]Num, Num) Num
 
-// euler and midpoint are integrators
-type integrator func([]num, num, num, []ode) []num
+// Integrator is the integration method, like mid point
+type Integrator func([]Num, Num, Num, []Ode) []Num
 
-func main() {
-	var k, m, b num
-
-	k = 1
-	m = 1
-	b = 0.4
-
-	dxdt := func(xx []num, t num) num { v := xx[1]; return v }
-	dvdt := func(xx []num, t num) num { x, v := xx[0], xx[1]; return -k*x/m - b*v/m }
-
-	odes := []ode{dxdt, dvdt}
-
-	fmt.Printf("#%8s %9s %9s %9s %9s\n", "t", "x", "v", "x'", "v'")
-
-	print(fixed_step(euler, odes, []num{-0.5, 0}, 0, 15, 0.25), odes)
-	fmt.Println("")
-	print(adaptive_step(euler, odes, []num{-0.5, 0}, 0, 15, 0.01, 0.5), odes)
-	fmt.Println("")
-	print(fixed_step(midpoint, odes, []num{-0.5, 0}, 0, 15, 0.25), odes)
-	fmt.Println("")
-	print(adaptive_step(midpoint, odes, []num{-0.5, 0}, 0, 15, 0.01, 0.5), odes)
-	fmt.Println("")
-	print(fixed_step(rk4, odes, []num{-0.5, 0}, 0, 15, 0.25), odes)
-	fmt.Println("")
-	print(adaptive_step(rk4, odes, []num{-0.5, 0}, 0, 15, 0.01, 0.5), odes)
-}
-
-func print(data []result, dxdt []ode) {
-	// assume system with two ode
-	for _, d := range data {
-		fmt.Printf("%9.3f %9.3f %9.3f %9.3f %9.3f\n",
-			d.t, d.xx[0], d.xx[1], dxdt[0](d.xx, d.t), dxdt[1](d.xx, d.t))
-	}
-}
-
-func fixed_step(method integrator, dxdt []ode, xx []num, t0, tmax, h num) []result {
-	var T num
+// FixedStep iterates over a set of ode's with fixed step h
+func FixedStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, h Num) []Result {
+	var T Num
 
 	T = t0
 
-	r := make([]result, 0, 200)
+	r := make([]Result, 0, 200)
 
 	for T <= tmax {
 		kk := method(xx, T, h, dxdt)
 
 		// store a copy of xx in r, not x itself for that will change
-		x := make([]num, len(xx))
+		x := make([]Num, len(xx))
 		copy(x, xx)
 
-		r = append(r, result{T, x})
+		r = append(r, Result{T, x})
 
 		for i, k := range kk {
 			xx[i] += k
@@ -80,21 +43,23 @@ func fixed_step(method integrator, dxdt []ode, xx []num, t0, tmax, h num) []resu
 	return r
 }
 
-func adaptive_step(method integrator, dxdt []ode, xx []num, t0, tmax, hmin, h num) []result {
-	var T num = t0
+// AdaptiveStep iterates over a set of ode's with adaptive h
+// starts with h and minimum hmin
+func AdaptiveStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, hmin, h Num) []Result {
+	var T Num = t0
 
-	var kk_full []num
+	var kk_full []Num
 
-	var H num
+	var H Num
 
-	r := make([]result, 0, 200)
+	r := make([]Result, 0, 200)
 
 	for T <= tmax {
 
 		// max 5 decrements
 		for a := 0; a < 5; a++ {
-			x_full_tmp := make([]num, len(xx))
-			x_half_tmp := make([]num, len(xx))
+			x_full_tmp := make([]Num, len(xx))
+			x_half_tmp := make([]Num, len(xx))
 
 			copy(x_half_tmp, xx)
 
@@ -104,7 +69,7 @@ func adaptive_step(method integrator, dxdt []ode, xx []num, t0, tmax, hmin, h nu
 				x_full_tmp[i] = xx[i] + k
 			}
 
-			var kk_half []num
+			var kk_half []Num
 
 			for halfs := 0; halfs <= 1; halfs++ {
 				kk_half = method(x_half_tmp, T, h/2, dxdt)
@@ -131,10 +96,10 @@ func adaptive_step(method integrator, dxdt []ode, xx []num, t0, tmax, hmin, h nu
 			}
 		}
 
-		x := make([]num, len(xx))
+		x := make([]Num, len(xx))
 		copy(x, xx)
 
-		r = append(r, result{T, x})
+		r = append(r, Result{T, x})
 
 		T += H
 
@@ -146,13 +111,14 @@ func adaptive_step(method integrator, dxdt []ode, xx []num, t0, tmax, hmin, h nu
 	return r
 }
 
-func quality(x_full []num, x_half []num, h num) num {
-	var q num = 0
+// quality compares results with h and h/2
+func quality(xFull []Num, xHalf []Num, h Num) Num {
+	var q Num = 0
 
-	for i, full := range x_full {
-		var c num
+	for i, full := range xFull {
+		var c Num
 
-		if diff := full - x_half[i]; diff >= 0 {
+		if diff := full - xHalf[i]; diff >= 0 {
 			c = diff / h
 		} else {
 			c = -diff / h
@@ -166,52 +132,55 @@ func quality(x_full []num, x_half []num, h num) num {
 	return q
 }
 
-func euler(x_n []num, t_n, h num, dxdt []ode) (k []num) {
-	d_n := make([]num, len(x_n))
+// Euler integration method (deriv a start of interval)
+func Euler(xx []Num, t, h Num, dxdt []Ode) (kk []Num) {
+	dd := make([]Num, len(xx))
 	for i, f := range dxdt {
-		d_n[i] = f(x_n, t_n)
+		dd[i] = f(xx, t)
 	}
 
-	k = make([]num, len(x_n))
-	for i, d := range d_n {
-		k[i] = h * d
+	kk = make([]Num, len(xx))
+	for i, d := range dd {
+		kk[i] = h * d
 	}
 
-	return k
+	return kk
 }
 
-func midpoint(x_n []num, t_n, h num, dxdt []ode) (k []num) {
-	d_n := make([]num, len(x_n))
+// Mid point integration method (derive half way interval)
+func MidPoint(x_n []Num, t_n, h Num, dxdt []Ode) (kk []Num) {
+	dd := make([]Num, len(x_n))
 
 	for i, f := range dxdt {
-		d_n[i] = f(x_n, t_n)
+		dd[i] = f(x_n, t_n)
 	}
 
-	x_2 := make([]num, len(x_n))
+	x_2 := make([]Num, len(x_n))
 
 	for i, x := range x_n {
-		x_2[i] = x + d_n[i]*h/2
+		x_2[i] = x + dd[i]*h/2
 	}
 
 	for i, f := range dxdt {
-		d_n[i] = f(x_2, t_n+h/2)
+		dd[i] = f(x_2, t_n+h/2)
 	}
 
-	k = make([]num, len(x_n))
-	for i, d := range d_n {
-		k[i] = h * d
+	kk = make([]Num, len(x_n))
+	for i, d := range dd {
+		kk[i] = h * d
 	}
 
-	return k
+	return kk
 }
 
-func rk4(xx0 []num, t, h num, dxdt []ode) (kk []num) {
-	dd0 := make([]num, len(xx0))
-	dd1 := make([]num, len(xx0))
-	dd2 := make([]num, len(xx0))
-	dd3 := make([]num, len(xx0))
+// Rk4 Runge Kutta integration method (weighted avarage deriv)
+func Rk4(xx0 []Num, t, h Num, dxdt []Ode) (kk []Num) {
+	dd0 := make([]Num, len(xx0))
+	dd1 := make([]Num, len(xx0))
+	dd2 := make([]Num, len(xx0))
+	dd3 := make([]Num, len(xx0))
 
-	xxNext := make([]num, len(xx0))
+	xxNext := make([]Num, len(xx0))
 
 	for i, f := range dxdt {
 		dd0[i] = f(xx0, t)
@@ -232,7 +201,7 @@ func rk4(xx0 []num, t, h num, dxdt []ode) (kk []num) {
 		dd3[i] = f(xxNext, t+h)
 	}
 
-	kk = make([]num, len(xxNext))
+	kk = make([]Num, len(xxNext))
 
 	for i := range xx0 {
 		kk[i] = h / 6 * (dd0[i] + 2*dd1[i] + 2*dd2[i] + dd3[i])
