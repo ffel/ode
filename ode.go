@@ -1,4 +1,4 @@
-// Numerical methods for ordinary differential equations
+// Packages ode provides numerical methods for ordinary differential equations
 package ode
 
 // Num as short for float64
@@ -48,7 +48,7 @@ func FixedStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, h Num) []Resul
 func AdaptiveStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, hmin, h Num) []Result {
 	var T Num = t0
 
-	var kk_full []Num
+	var kkFull []Num
 
 	var H Num
 
@@ -58,28 +58,28 @@ func AdaptiveStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, hmin, h Num
 
 		// max 5 decrements
 		for a := 0; a < 5; a++ {
-			x_full_tmp := make([]Num, len(xx))
-			x_half_tmp := make([]Num, len(xx))
+			xFullTmp := make([]Num, len(xx))
+			xHalfTmp := make([]Num, len(xx))
 
-			copy(x_half_tmp, xx)
+			copy(xHalfTmp, xx)
 
-			kk_full = method(xx, T, h, dxdt)
+			kkFull = method(xx, T, h, dxdt)
 
-			for i, k := range kk_full {
-				x_full_tmp[i] = xx[i] + k
+			for i, k := range kkFull {
+				xFullTmp[i] = xx[i] + k
 			}
 
-			var kk_half []Num
+			var kkHalf []Num
 
 			for halfs := 0; halfs <= 1; halfs++ {
-				kk_half = method(x_half_tmp, T, h/2, dxdt)
+				kkHalf = method(xHalfTmp, T, h/2, dxdt)
 
-				for i, k := range kk_half {
-					x_half_tmp[i] += k
+				for i, k := range kkHalf {
+					xHalfTmp[i] += k
 				}
 			}
 
-			q := quality(x_full_tmp, x_half_tmp, h)
+			q := quality(xFullTmp, xHalfTmp, h)
 
 			// store h as the used value
 			H = h
@@ -103,7 +103,7 @@ func AdaptiveStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, hmin, h Num
 
 		T += H
 
-		for i, k := range kk_full {
+		for i, k := range kkFull {
 			xx[i] += k
 		}
 	}
@@ -113,7 +113,7 @@ func AdaptiveStep(method Integrator, dxdt []Ode, xx []Num, t0, tmax, hmin, h Num
 
 // quality compares results with h and h/2
 func quality(xFull []Num, xHalf []Num, h Num) Num {
-	var q Num = 0
+	var q Num
 
 	for i, full := range xFull {
 		var c Num
@@ -147,25 +147,25 @@ func Euler(xx []Num, t, h Num, dxdt []Ode) (kk []Num) {
 	return kk
 }
 
-// Mid point integration method (derive half way interval)
-func MidPoint(x_n []Num, t_n, h Num, dxdt []Ode) (kk []Num) {
-	dd := make([]Num, len(x_n))
+// MidPoint integration method (derive half way interval)
+func MidPoint(xx []Num, t, h Num, dxdt []Ode) (kk []Num) {
+	dd := make([]Num, len(xx))
 
 	for i, f := range dxdt {
-		dd[i] = f(x_n, t_n)
+		dd[i] = f(xx, t)
 	}
 
-	x_2 := make([]Num, len(x_n))
+	xx2 := make([]Num, len(xx))
 
-	for i, x := range x_n {
-		x_2[i] = x + dd[i]*h/2
+	for i, x := range xx {
+		xx2[i] = x + dd[i]*h/2
 	}
 
 	for i, f := range dxdt {
-		dd[i] = f(x_2, t_n+h/2)
+		dd[i] = f(xx2, t+h/2)
 	}
 
-	kk = make([]Num, len(x_n))
+	kk = make([]Num, len(xx))
 	for i, d := range dd {
 		kk[i] = h * d
 	}
