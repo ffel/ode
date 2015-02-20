@@ -22,7 +22,7 @@ func Example_Rk4() {
 	d := result[len(result)-1]
 
 	fmt.Printf("%9.3f %9.3f %9.3f %9.3f %9.3f\n",
-		d.t, d.xx[0], d.xx[1], odes[0](d.xx, d.t), odes[1](d.xx, d.t))
+		d.T, d.XX[0], d.XX[1], odes[0](d.XX, d.T), odes[1](d.XX, d.T))
 
 	// output:
 	//         t         x         v        x'        v'

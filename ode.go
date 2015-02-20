@@ -6,8 +6,8 @@ type Num float64
 
 // Result is a row in a table of calculated results
 type Result struct {
-	t  Num
-	xx []Num
+	T  Num
+	XX []Num
 }
 
 // Ode is a first order differential equation
